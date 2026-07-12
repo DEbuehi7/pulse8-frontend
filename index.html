@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pulse8 Stream</title>
-    <script src="https://cdn.jsdelivr.net/npm/nsfwjs@2.4.0/dist/nsfwjs.min.js"></script>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
@@ -78,29 +77,41 @@
     <div class="grid" id="stream-view">Initializing secure aggregation layer...</div>
 
     <script>
-        // CRITICAL: Replace 'your-project-id' with your actual Firebase project ID string
-        const FIREBASE_REST_URL = "https://pulse8-592f2.firebaseio.com/raw_videos.json";
+        // Use the native Firestore REST Endpoint mapping
+        const PROJECT_ID = "AIzaSyB70hCvnCnLEEF0W21p6tVGZjB2t3UaYv0"; 
+        const FIRESTORE_REST_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/raw_videos`;
 
         async function launchViewer() {
             try {
-                const response = await fetch(FIREBASE_REST_URL);
+                const response = await fetch(FIRESTORE_REST_URL);
                 const data = await response.json();
                 const container = document.getElementById("stream-view");
                 
-                if (!data) {
+                if (!data || !data.documents) {
                     container.innerHTML = "<div class='card'><p>Ingestion database is currently empty. Waiting for the next automated Worker cycle.</p></div>";
                     return;
                 }
 
-                // Convert Firebase object map into a clean sorted array based on conversion metrics
-                const sortedItems = Object.values(data).sort((a, b) => b.conversion_score - a.conversion_score);
+                // Map Firestore's strongly typed REST schema to simple UI values
+                const items = data.documents.map(doc => {
+                    const fields = doc.fields;
+                    return {
+                        id: fields.id?.stringValue || "",
+                        source: fields.source?.stringValue || "UNKNOWN",
+                        title: fields.optimized_title?.stringValue || fields.title?.stringValue || "Untitled Asset",
+                        score: fields.conversion_score?.integerValue || 50
+                    };
+                });
+
+                // Sort by conversion score
+                items.sort((a, b) => b.score - a.score);
                 
-                container.innerHTML = sortedItems.map(item => `
+                container.innerHTML = items.map(item => `
                     <div class="card">
                         <div>
                             <p class="source">${item.source}</p>
-                            <h3 class="title">${item.optimized_title || item.title}</h3>
-                            <span class="score-badge">Engine Score: ${item.conversion_score}/100</span>
+                            <h3 class="title">${item.title}</h3>
+                            <span class="score-badge">Engine Score: ${item.score}/100</span>
                         </div>
                         <a href="https://pulse8-dataconnect.edoaura8.workers.dev/click/${item.id}" target="_blank" class="btn" rel="noopener sponsored">Watch Now</a>
                     </div>

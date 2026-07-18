@@ -1,14 +1,12 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "pulse8-frontend",
-  "compatibility_date": "2026-07-12",
-  "observability": {
-    "enabled": true
-  },
-  "assets": {
-    "directory": "."
-  },
-  "compatibility_flags": [
-    "nodejs_compat"
-  ]
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-11",
+  "routes": [
+    { "pattern": "matrix.pulse8.us/*", "zone_name": "matrix.pulse8.us" }
+  ],
+  "vars": {
+    "FIREBASE_DB_URL": "https://firestore.googleapis.com/v1/projects/pulse8-592f2/databases/(default)/documents"
+  }
 }
